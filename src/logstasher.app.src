@@ -1,0 +1,13 @@
+{application, logstasher, [
+    {description, "logstasher is Erlang Logger formatter for logstash"},
+    {vsn, git},
+    {registered, []},
+    {applications, [
+        kernel,
+        stdlib
+    ]},
+    {env,[]},
+    {modules, []},
+    {licenses, ["Apache 2.0"]},
+    {links, []}
+ ]}.
