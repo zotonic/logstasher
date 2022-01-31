@@ -12,7 +12,7 @@
 -export([init/1, handle_call/3, handle_cast/2, terminate/2]).
 
 %% Xref ignores
--ignore_xref([start_link/0]).
+-ignore_xref([start_link/0, send_message/2]).
 
 %% Default transport, port and host for logstash
 -define(LOGSTASH_TRANSPORT, udp).
