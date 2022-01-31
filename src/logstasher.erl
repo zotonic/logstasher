@@ -26,7 +26,7 @@
 
 %% @doc Send a custom message with fields to logstash. The fields must be valid
 %% input for the json encoder.
--spec send_message( Message::binary(), Fields::map()) -> ok | {'error',atom() | {'timeout',binary()}}.
+-spec send_message( Message::binary(), Fields::map()) -> ok | {'error',atom()}.
 send_message(Message, Fields) when is_map(Fields) ->
     T = erlang:system_time(microsecond),
     Timestamp = list_to_binary(calendar:system_time_to_rfc3339(T, [{unit, microsecond}, {offset, "Z"}])),
@@ -38,7 +38,7 @@ send_message(Message, Fields) when is_map(Fields) ->
     send(jsx:encode(Msg)).
 
 %% @doc Send an encoded JSON message to logstash.
--spec send(Data::binary()) -> ok | {'error',atom() | {'timeout',binary()}}.
+-spec send(Data::binary()) -> ok | {'error',atom()}.
 send(Data) when is_binary(Data) ->
     case whereis(?MODULE) of
         undefined -> {error, not_started};
@@ -106,7 +106,7 @@ connect(#{transport := udp}) ->
             undefined
     end.
 
--spec maybe_send(binary(), maps:map()) -> 'ok' | {'error',atom() | {'timeout',binary()}}.
+-spec maybe_send(binary(), maps:map()) -> 'ok' | {'error',atom()}.
 maybe_send(Data, #{socket := undefined} = State) ->
     maybe_send(Data, State#{socket => connect(State)});
 maybe_send(Data, State) ->
