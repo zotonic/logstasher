@@ -10,8 +10,8 @@ Erlang Logger formatter for logstash
 [hexpm]: https://hex.pm/packages/logstasher
 [hexpm version]: https://img.shields.io/hexpm/v/logstasher.svg?style=flat-square
 [hexpm downloads]: https://img.shields.io/hexpm/dt/logstasher.svg?style=flat-square
-[gh]: https://github.com/logstasher/logstasher/actions/workflows/ci.yml
-[gh badge]: https://img.shields.io/github/workflow/status/logstasher/logstasher/CI?style=flat-square
+[gh]: https://github.com/zotonic/logstasher/actions/workflows/ci.yml
+[gh badge]: https://img.shields.io/github/workflow/status/zotonic/logstasher/CI?style=flat-square
 [erlang version badge]: https://img.shields.io/badge/erlang-22.0%20to%2024.2.1-blue.svg?style=flat-square
 
 
@@ -64,7 +64,7 @@ application:
 
 ## Logstash Configuration
 
-```
+```ruby
 input {
   udp {
     codec => json

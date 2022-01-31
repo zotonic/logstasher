@@ -50,7 +50,7 @@ safe_meta(Meta) ->
 safe_fields(Terms) ->
     lists:map(fun safe_field/1, Terms).
 
-%-spec safe_field({term(), term()}) -> {atom() | binary(), jsx:json_term()}.
+-spec safe_field({atom() | binary() | atom(), term()}) -> {atom() | binary(), jsx:json_term()}.
 safe_field({Key, Value}) when is_atom(Key); is_binary(Key) ->
     {Key, safe_value(Value)};
 safe_field({Key, Value}) when is_list(Key) ->
