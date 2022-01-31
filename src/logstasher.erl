@@ -123,10 +123,6 @@ maybe_send(Data, State) ->
 send(_Data, #{socket := undefined}) ->
     {error, closed};
 send(Data, #{transport := tcp, socket := Socket}) ->
-    case gen_tcp:send(Socket, Data) of
-        ok -> ok;
-        {error, {timeout, _}} -> {error, timeout};
-        {error, _} = E -> E
-    end;
-send(Data, #{transport := udp, socket := Socket, host := Host, port := Port}) ->
+    gen_tcp:send(Socket, Data);
+ send(Data, #{transport := udp, socket := Socket, host := Host, port := Port}) ->
     gen_udp:send(Socket, Host, Port, Data).
