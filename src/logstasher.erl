@@ -3,7 +3,7 @@
 -behaviour(gen_server).
 
 %% API
--export([send/1]).
+-export([send/1, send_message/2]).
 
 %% Supervisor API
 -export([start_link/0]).
@@ -14,13 +14,36 @@
 %% Xref ignores
 -ignore_xref([start_link/0]).
 
+%% Default transport, port and host for logstash
+-define(LOGSTASH_TRANSPORT, udp).
+-define(LOGSTASH_PORT, 5000).
+-define(LOGSTASH_HOST, "localhost").
+
 %%==============================================================================
 %% API
 %%==============================================================================
 
--spec send(binary()) -> ok.
-send(Data) ->
-    gen_server:call(?MODULE, {send, Data}).
+
+%% @doc Send a custom message with fields to logstash. The fields must be valid
+%% input for the json encoder.
+-spec send_message( Message::binary(), Fields::map()) -> ok | {error, term()}.
+send_message(Message, Fields) when is_map(Fields) ->
+    T = erlang:system_time(microsecond),
+    Timestamp = list_to_binary(calendar:system_time_to_rfc3339(T, [{unit, microsecond}, {offset, "Z"}])),
+    Msg = #{
+        '@timestamp' => Timestamp,
+        fields => Fields,
+        message => unicode:characters_to_binary(Message)
+    },
+    send(jsx:encode(Msg)).
+
+%% @doc Send an encoded JSON message to logstash.
+-spec send(Data::binary()) -> ok | {error, term()}.
+send(Data) when is_binary(Data) ->
+    case whereis(?MODULE) of
+        undefined -> {error, not_started};
+        Pid -> gen_server:call(Pid, {send, Data})
+    end.
 
 %%==============================================================================
 %% Supervisor API
@@ -36,17 +59,17 @@ start_link() ->
 
 -spec init(term()) -> {ok, maps:map()} | {stop, maps:map()}.
 init(_) ->
-    Transport = application:get_env(?MODULE, transport, udp),
-    Host = application:get_env(?MODULE, host, undefined),
-    Port = application:get_env(?MODULE, port, undefined),
+    Transport = application:get_env(?MODULE, transport, ?LOGSTASH_TRANSPORT),
+    Host = application:get_env(?MODULE, host, ?LOGSTASH_HOST),
+    Port = application:get_env(?MODULE, port, ?LOGSTASH_PORT),
     Opts = #{transport => Transport, host => Host, port => Port},
-    State = Opts#{socket => connect(Opts)},io:format("State ~p~n", [State]),
+    State = Opts#{socket => connect(Opts)},
     {ok, State}.
 
--spec handle_call({'send',binary()}, any(), maps:map()) -> {reply, ok, maps:map()}.
+-spec handle_call({'send',binary()}, any(), maps:map()) -> {reply, ok | {error,term()}, maps:map()}.
 handle_call({send, Data}, _, State) ->
-    ok = send(Data, State),
-    {reply, ok, State}.
+    Result = maybe_send(Data, State),
+    {reply, Result, State}.
 
 -spec handle_cast(term(), maps:map()) -> {noreply, maps:map()}.
 handle_cast(_, State) ->
@@ -68,7 +91,8 @@ connect(#{transport := tcp, host := Host, port := Port}) ->
     case gen_tcp:connect(Host, Port, Opts) of
         {ok, Socket} ->
             Socket;
-        {error, _} ->
+        {error, Reason} ->
+            io:format("logstasher: error opening tcp socket (~p)~n", [Reason]),
             undefined
     end;
 connect(#{transport := udp}) ->
@@ -76,12 +100,25 @@ connect(#{transport := udp}) ->
     case gen_udp:open(0, Opts) of
         {ok, Socket} ->
             Socket;
-        {error, _} ->
+        {error, Reason} ->
+            io:format("logstasher: error opening udp socket (~p)~n", [Reason]),
             undefined
     end.
 
--spec send(binary(), maps:map()) -> ok.
+-spec maybe_send(binary(), maps:map()) -> ok | {error, term()}.
+maybe_send(Data, #{socket := undefined} = State) ->
+    maybe_send(Data, State#{socket => connect(State)});
+maybe_send(Data, State) ->
+    case send(Data, State) of
+        ok -> ok;
+        {error, closed} -> maybe_send(Data, State#{socket => undefined});
+        {error, _} = Error -> Error
+    end.
+
+-spec send(binary(), maps:map()) -> ok | {error, term()}.
+send(_Data, #{socket := undefined}) ->
+    {error, closed};
 send(Data, #{transport := tcp, socket := Socket}) ->
-    ok = gen_tcp:send(Socket, Data);
+    gen_tcp:send(Socket, Data);
 send(Data, #{transport := udp, socket := Socket, host := Host, port := Port}) ->
-    ok = gen_udp:send(Socket, Host, Port, Data).
+    gen_udp:send(Socket, Host, Port, Data).

@@ -11,11 +11,15 @@
 %%==============================================================================
 
 -spec log(logger:log_event(), logger:handler_config()) -> ok.
+log(#{level := info, meta := #{error_logger := #{type := progress}}}, _Config) ->
+    % Ignore supervisor progress reports
+    ok;
 log(#{level := Level, msg := EventData, meta := Meta}, _Config) ->
     {Msg, MsgFields} = format_msg(EventData),
     Fields = [{severity, Level}] ++ safe_meta(Meta) ++ MsgFields,
     Data = #{fields => Fields, '@timestamp' => format_timestamp(Meta), message => Msg},
-    logstasher:send(jsx:encode(Data)).
+    _ = logstasher:send(jsx:encode(Data)),
+    ok.
 
 %%==============================================================================
 %% Internal functions
