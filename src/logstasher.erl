@@ -19,6 +19,9 @@
 -define(LOGSTASH_PORT, 5000).
 -define(LOGSTASH_HOST, "localhost").
 
+-define(TCP_CONNECT_TIMEOUT, 5000).
+
+
 %%==============================================================================
 %% API
 %%==============================================================================
@@ -89,7 +92,7 @@ terminate(_, #{transport := udp, socket := Socket}) ->
 -spec connect(maps:map()) -> gen_udp:socket() | gen_tcp:socket() | undefined.
 connect(#{transport := tcp, host := Host, port := Port}) ->
     Opts = [binary, {active, false}, {keepalive, true}],
-    case gen_tcp:connect(Host, Port, Opts) of
+    case gen_tcp:connect(Host, Port, Opts, ?TCP_CONNECT_TIMEOUT) of
         {ok, Socket} ->
             Socket;
         {error, Reason} ->
@@ -116,10 +119,14 @@ maybe_send(Data, State) ->
         {error, _} = Error -> Error
     end.
 
--spec send(binary(), maps:map()) -> ok | {error, term()}.
+-spec send(binary(), maps:map()) -> ok | {error, atom()}.
 send(_Data, #{socket := undefined}) ->
     {error, closed};
 send(Data, #{transport := tcp, socket := Socket}) ->
-    gen_tcp:send(Socket, Data);
+    case gen_tcp:send(Socket, Data) of
+        ok -> ok;
+        {error, {timeout, _}} -> {error, timeout};
+        {error, _} = E -> E
+    end;
 send(Data, #{transport := udp, socket := Socket, host := Host, port := Port}) ->
     gen_udp:send(Socket, Host, Port, Data).
