@@ -125,11 +125,11 @@ maybe_send(Data, State) ->
     end.
 
 -spec send(binary(), maps:map()) -> ok | {error, atom()}.
+send(Data, #{transport := console}) ->
+    io:put_chars([ Data, "\n"]);
 send(_Data, #{socket := undefined}) ->
     {error, closed};
 send(Data, #{transport := tcp, socket := Socket}) ->
     gen_tcp:send(Socket, Data);
 send(Data, #{transport := udp, socket := Socket, host := Host, port := Port}) ->
-    gen_udp:send(Socket, Host, Port, Data);
-send(Data, #{transport := console}) ->
-    io:put_chars([ Data, "\n"]).
+    gen_udp:send(Socket, Host, Port, Data).
