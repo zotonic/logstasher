@@ -45,7 +45,7 @@ application:
      ]},
 
      {logstasher, [
-         {transport, udp},     % tcp | udp
+         {transport, udp},     % tcp | udp | console
          {host, "localhost"},  % inet:hostname()
          {port, 5000}          % inet:port_number()
      ]}

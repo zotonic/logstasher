@@ -82,7 +82,9 @@ handle_cast(_, State) ->
 terminate(_, #{transport := tcp, socket := Socket}) ->
     gen_tcp:close(Socket);
 terminate(_, #{transport := udp, socket := Socket}) ->
-    gen_udp:close(Socket).
+    gen_udp:close(Socket);
+terminate(_, #{transport := console}) ->
+    ok.
 
 %%==============================================================================
 %% Internal functions
@@ -106,9 +108,13 @@ connect(#{transport := udp}) ->
         {error, Reason} ->
             io:format("logstasher: error opening udp socket (~p)~n", [Reason]),
             undefined
-    end.
+    end;
+connect(#{transport := console}) ->
+    undefined.
 
 -spec maybe_send(binary(), maps:map()) -> ok | {error, atom()}.
+maybe_send(Data, #{transport := console} = State) ->
+    send(Data, State);
 maybe_send(Data, #{socket := undefined} = State) ->
     maybe_send(Data, State#{socket => connect(State)});
 maybe_send(Data, State) ->
@@ -123,5 +129,7 @@ send(_Data, #{socket := undefined}) ->
     {error, closed};
 send(Data, #{transport := tcp, socket := Socket}) ->
     gen_tcp:send(Socket, Data);
- send(Data, #{transport := udp, socket := Socket, host := Host, port := Port}) ->
-    gen_udp:send(Socket, Host, Port, Data).
+send(Data, #{transport := udp, socket := Socket, host := Host, port := Port}) ->
+    gen_udp:send(Socket, Host, Port, Data);
+send(Data, #{transport := console}) ->
+    io:put_chars([ Data, "\n"]).
