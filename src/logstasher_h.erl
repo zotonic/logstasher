@@ -57,7 +57,8 @@ safe_field({Key, Value}) when is_list(Key) ->
     safe_field({list_to_binary(Key), Value}).
 
 -spec safe_value(term()) -> jsx:json_term().
-safe_value(Pid) when is_pid(Pid) -> list_to_binary(pid_to_list(Pid));
+safe_value(Pid) when is_pid(Pid) ->
+    list_to_binary(pid_to_list(Pid));
 safe_value(List) when is_list(List) ->
     case io_lib:char_list(List) of
         true ->
@@ -65,6 +66,8 @@ safe_value(List) when is_list(List) ->
         false ->
             lists:map(fun safe_value/1, List)
     end;
+safe_value(undefined) ->
+    null;
 safe_value(Val) when is_binary(Val); is_atom(Val); is_integer(Val) ->
     Val;
 safe_value(Val) ->
