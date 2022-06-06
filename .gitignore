@@ -21,9 +21,5 @@ logs
 rebar3.crashdump
 
 doc/*
-!doc/style.css
 !doc/overview.edoc
-!doc/img
-!doc/img/*
-!doc/img/logo.png 
 .vscode
