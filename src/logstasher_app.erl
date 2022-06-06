@@ -1,4 +1,4 @@
-%%%-------------------------------------------------------------------
+%%% @private
 -module(logstasher_app).
 
 -behaviour(application).

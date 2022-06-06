@@ -1,3 +1,4 @@
+%%% @private
 -module(logstasher_sup).
 
 -behaviour(supervisor).
