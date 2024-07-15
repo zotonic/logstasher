@@ -59,26 +59,33 @@ start_link() ->
 %% Supervisor callbacks
 %%==============================================================================
 
--spec init(term()) -> {ok, maps:map()} | {stop, maps:map()}.
+-type state() :: #{
+        transport := module(),
+        host := string() | binary() | tuple(),
+        port := pos_integer(),
+        socket => gen_udp:socket() | gen_tcp:socket() | undefined
+    }.
+
+-spec init(_) -> {ok, state()}.
 init(_) ->
     Transport = application:get_env(?MODULE, transport, ?LOGSTASH_TRANSPORT),
     Host = application:get_env(?MODULE, host, ?LOGSTASH_HOST),
     Port = application:get_env(?MODULE, port, ?LOGSTASH_PORT),
-    Opts = #{transport => Transport, host => Host, port => Port},
-    State = Opts#{socket => connect(Opts)},
+    Opts = #{ transport => Transport, host => Host, port => Port },
+    State = Opts#{ socket => connect(Opts) },
     {ok, State}.
 
--spec handle_call({send, binary()}, any(), maps:map()) ->
-    {reply, ok | {error, atom() | {timeout, binary()}}, maps:map()}.
+-spec handle_call({send, binary()}, _, state()) ->
+    {reply, ok | {error, atom() | {timeout, binary()}}, state()}.
 handle_call({send, Data}, _, State) ->
     Result = maybe_send(Data, State),
     {reply, Result, State}.
 
--spec handle_cast(term(), maps:map()) -> {noreply, maps:map()}.
+-spec handle_cast(_, state()) -> {noreply, state()}.
 handle_cast(_, State) ->
     {noreply, State}.
 
--spec terminate(term(), maps:map()) -> ok.
+-spec terminate(_, state()) -> ok.
 terminate(_, #{transport := tcp, socket := Socket}) ->
     gen_tcp:close(Socket);
 terminate(_, #{transport := udp, socket := Socket}) ->
@@ -90,7 +97,7 @@ terminate(_, #{transport := console}) ->
 %% Internal functions
 %%==============================================================================
 
--spec connect(maps:map()) -> gen_udp:socket() | gen_tcp:socket() | undefined.
+-spec connect(state()) -> gen_udp:socket() | gen_tcp:socket() | undefined.
 connect(#{transport := tcp, host := Host, port := Port}) ->
     Opts = [binary, {active, false}, {keepalive, true}],
     case gen_tcp:connect(Host, Port, Opts, ?TCP_CONNECT_TIMEOUT) of
@@ -112,7 +119,7 @@ connect(#{transport := udp}) ->
 connect(#{transport := console}) ->
     undefined.
 
--spec maybe_send(binary(), maps:map()) -> ok | {error, atom()}.
+-spec maybe_send(binary(), map()) -> ok | {error, atom()}.
 maybe_send(Data, #{transport := console} = State) ->
     send(Data, State);
 maybe_send(Data, #{socket := undefined} = State) ->
@@ -124,12 +131,12 @@ maybe_send(Data, State) ->
         {error, _} = Error -> Error
     end.
 
--spec send(binary(), maps:map()) -> ok | {error, atom()}.
+-spec send(binary(), map()) -> ok | {error, atom()}.
 send(Data, #{transport := console}) ->
     io:put_chars([ Data, "\n"]);
 send(_Data, #{socket := undefined}) ->
     {error, closed};
 send(Data, #{transport := tcp, socket := Socket}) ->
-    gen_tcp:send(Socket, Data);
+    gen_tcp:send(Socket, [ Data, "\n" ]);
 send(Data, #{transport := udp, socket := Socket, host := Host, port := Port}) ->
-    gen_udp:send(Socket, Host, Port, Data).
+    gen_udp:send(Socket, Host, Port, [ Data, "\n" ]).

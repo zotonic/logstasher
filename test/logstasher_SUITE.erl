@@ -9,7 +9,7 @@
 
 -export([all/0, groups/0, init_per_testcase/2, end_per_testcase/2]).
 
--export([logstasher_udp/1, logstasher_tcp/1]).
+-export([logstasher_udp/1, logstasher_tcp/1, logstasher_message/1]).
 
 -spec all() -> [ct_suite:ct_test_def(), ...].
 all() ->
@@ -17,15 +17,17 @@ all() ->
 
 -spec groups() -> [ct_suite:ct_group_def(), ...].
 groups() ->
-    [{logstasher, [sequence], [logstasher_udp, logstasher_tcp]}].
+    [{logstasher, [sequence], [
+        logstasher_udp,
+        logstasher_tcp,
+        logstasher_message
+    ]}].
 
 -spec init_per_testcase(ct_suite:ct_testname(), ct_suite:ct_config()) ->
                            ct_suite:ct_config() | {fail, term()} | {skip, term()}.
 init_per_testcase(_Name, Config) ->
     ok = logger:add_handler(logstash, logstasher_h, #{level => info}),
     ok = logger:update_primary_config(#{level => all}),
-    Config;
-init_per_testcase(_Name, Config) ->
     Config.
 
 -spec end_per_testcase(ct_suite:ct_testname(), ct_suite:ct_config()) ->
@@ -105,3 +107,26 @@ logstasher_tcp(_Config) ->
     end,
 
     ?assertEqual(list_to_binary(ErrorMsg), Msg).
+
+
+-spec logstasher_message(ct_suite:ct_config()) -> ok | no_return().
+logstasher_message(_Config) ->
+    {ok, _Started} = application:ensure_all_started(logstasher),
+    #{
+        message := <<"Hello">>,
+        fields := #{ msg := <<"Hello">>, severity := info }
+    } = logstasher_h:log_data(#{
+        level => info,
+        msg => {report, #{ msg => <<"Hello">> }},
+        meta => #{ time => 0 }
+    }),
+    #{
+        message := <<"Hello">>,
+        fields := Fields2
+    } = logstasher_h:log_data(#{
+        level => info,
+        msg => {report, #{ text => <<"Hello">> }},
+        meta => #{ time => 0 }
+    }),
+    false = maps:is_key(text, Fields2),
+    ok.
