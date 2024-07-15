@@ -114,13 +114,12 @@ logstasher_message(_Config) ->
     {ok, _Started} = application:ensure_all_started(logstasher),
     #{
         message := <<"Hello">>,
-        fields := Fields1
+        fields := #{ msg := <<"Hello">>, severity := info }
     } = logstasher_h:log_data(#{
         level => info,
         msg => {report, #{ msg => <<"Hello">> }},
         meta => #{ time => 0 }
     }),
-    true = maps:is_key(msg, Fields1),
     #{
         message := <<"Hello">>,
         fields := Fields2
