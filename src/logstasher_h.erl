@@ -7,7 +7,7 @@
 -export([log_data/1]).
 
 %% Xref ignores
--ignore_xref([log/2]).
+-ignore_xref([log/2, log_data/1]).
 
 %% Truncate binary values beyond this size.
 -define(LOG_BINARY_SIZE, 2000).
@@ -49,11 +49,6 @@ log_data(#{level := Level, msg := EventData, meta := Meta}) ->
 
 %% @doc If there is no message, try to extract the 'text' fields from the message fields
 %% and use that as the message.
--spec maybe_extract_message(Message, MsgFields) -> {Message1, MsgFields1} when
-    Message :: null | binary(),
-    Message1 :: null | binary(),
-    MsgFields :: map(),
-    MsgFields1 :: map().
 maybe_extract_message(null, #{ text := Text } = MsgFields) when is_binary(Text) ->
     {Text, maps:remove(text, MsgFields)};
 maybe_extract_message(Msg, MsgFields) ->
@@ -195,11 +190,11 @@ is_proplist(_) -> false.
 % Simple ASCII character string, typically SQL statements, filenames or literal texts.
 is_ascii_list([]) -> true;
 is_ascii_list([ C | T ]) when C >= 32, C =< 127 -> is_ascii_list(T);
-is_ascii_list([ C | T ]) when C =:= $\n, C =:= $\t -> is_ascii_list(T);
+is_ascii_list([ C | T ]) when C =:= $\n; C =:= $\t -> is_ascii_list(T);
 is_ascii_list(_) -> false.
 
 maybe_truncate(Bin) when size(Bin) >= ?LOG_BINARY_SIZE ->
     <<Truncated:?LOG_BINARY_SIZE/binary, _/binary>> = Bin,
-    <<Truncated, "...">>;
+    <<Truncated/binary, "...">>;
 maybe_truncate(Bin) ->
     Bin.
