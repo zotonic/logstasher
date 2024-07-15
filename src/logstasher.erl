@@ -137,6 +137,6 @@ send(Data, #{transport := console}) ->
 send(_Data, #{socket := undefined}) ->
     {error, closed};
 send(Data, #{transport := tcp, socket := Socket}) ->
-    gen_tcp:send(Socket, Data);
+    gen_tcp:send(Socket, [ Data, "\n" ]);
 send(Data, #{transport := udp, socket := Socket, host := Host, port := Port}) ->
-    gen_udp:send(Socket, Host, Port, Data).
+    gen_udp:send(Socket, Host, Port, [ Data, "\n" ]).
