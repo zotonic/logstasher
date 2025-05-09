@@ -193,8 +193,7 @@ is_ascii_list([ C | T ]) when C >= 32, C =< 127 -> is_ascii_list(T);
 is_ascii_list([ C | T ]) when C =:= $\n; C =:= $\t -> is_ascii_list(T);
 is_ascii_list(_) -> false.
 
-maybe_truncate(Bin) when size(Bin) >= ?LOG_BINARY_SIZE ->
-    <<Truncated:?LOG_BINARY_SIZE/binary, _/binary>> = Bin,
-    <<Truncated/binary, "...">>;
+maybe_truncate(<<Truncated:?LOG_BINARY_SIZE/binary, _/binary>>) ->
+    Truncated;
 maybe_truncate(Bin) ->
     Bin.
